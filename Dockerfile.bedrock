@@ -1,20 +1,18 @@
-# Dockerfile for AWS Bedrock Access Gateway
-# Provides OpenAI-compatible API for Amazon Bedrock models
+# Dockerfile for AWS Bedrock Access Gateway (vendored + patched for the CTF)
+# Provides an OpenAI-compatible API in front of Amazon Bedrock.
+#
+# The source is VENDORED in ./bedrock-gateway (from aws-samples/bedrock-access-gateway)
+# and carries a local patch to api/models/bedrock.py::_reframe_multi_payloard that
+# appends a trailing user turn so Challenge 7 (code interpreter) works over the
+# Bedrock Converse API. Do NOT replace this with a fresh `git clone` of upstream
+# or that patch is lost.
 
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install git and dependencies
-RUN apt-get update && \
-    apt-get install -y git && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Clone the bedrock-access-gateway repository
-RUN git clone https://github.com/aws-samples/bedrock-access-gateway.git /tmp/bedrock-gateway && \
-    cp -r /tmp/bedrock-gateway/src/* /app/ && \
-    rm -rf /tmp/bedrock-gateway
+# Vendored, patched gateway source
+COPY bedrock-gateway/ /app/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

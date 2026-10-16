@@ -549,7 +549,11 @@ def create_model(client, model_config):
         "name": model_config['name'],
         "meta": meta,
         "params": {
-            "system": model_config.get('system_prompt', '')
+            "system": model_config.get('system_prompt', ''),
+            # Propagate optional per-model params from the template. Challenge 8
+            # (jackson_agent) needs function_calling: "native" so Open WebUI passes
+            # tools through the API and the calculator tool actually fires.
+            **(model_config.get('params') or {}),
         },
         "access_control": model_config.get('access_control', None),
     }

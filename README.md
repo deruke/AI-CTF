@@ -128,6 +128,17 @@ This CTF environment includes optional support for Amazon Bedrock, allowing you 
 
 The Bedrock Gateway provides an OpenAI-compatible API, making it seamless to use with Open WebUI.
 
+### What the `bedrock` branch captures
+
+This branch is the reproducible Bedrock build of the CTF. Clone it, put your AWS keys in `.env`, run `docker compose up`, and the whole stack (gateway included) comes up on Bedrock with no manual out-of-band steps.
+
+- **AWS prerequisites (do this first).** Valid keys alone are not enough. In the Bedrock console, enable model access for Llama 3.3 70B, Llama 4 Scout, and Llama 3.1 8B in your region, and use keys whose IAM allows `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on both the foundation-model ARNs and the `us.`-prefixed inference-profile ARNs. Set `AWS_REGION`/`AWS_DEFAULT_REGION` to that region (the workshop ran in `us-west-2`). The model IDs committed here are the exact inference-profile IDs that ran live, so they invoke as-is once access is granted. If you change `BEDROCK_API_KEY` in `.env`, keep it equal to the gateway connection key in `openwebui/ctf_config.json.template`.
+- **Vendored, patched gateway.** `bedrock-gateway/` is a copy of [aws-samples/bedrock-access-gateway](https://github.com/aws-samples/bedrock-access-gateway) with a local patch to `api/models/bedrock.py::_reframe_multi_payloard` that appends a trailing `user` turn so Challenge 7 (code interpreter) works over Bedrock's Converse API. `Dockerfile.bedrock` builds from this vendored source. Do NOT swap it for a fresh upstream `git clone` or the patch is lost.
+- **Challenge model routing (matches the live workshop).** Text challenges (1-7, 9, 10, flag checker) route to `us.meta.llama3-3-70b-instruct-v1:0`; Challenge 11 (multi-modal) routes to `us.meta.llama4-scout-17b-instruct-v1:0`; Challenge 8 (agent) routes to `us.meta.llama3-1-8b-instruct-v1:0` with `function_calling: native`. These IDs are `us.`-prefixed inference profiles (required for on-demand Bedrock in `us-*` regions).
+- **Challenge 8 caveat.** Native function-calling plus the "honor tool requests" system-prompt line are captured exactly as run live, but Ch8 was never confirmed end-to-end solvable: the safety-tuned 8B model, combined with the calculator tool's own "dangerously insecure / eval()" description, makes it refuse to call the tool. To make it reliably solvable, soften that tool description in `openwebui/tools/` and/or move Ch8 to a stronger model.
+- **Challenge 11 image filter.** `openwebui/functions/image_text_filter.py` carries the v0.5 fix (detects inline `image_url` content; never `.strip()`s list content).
+- **Smoke test.** After `docker compose up -d`, run `./scripts/smoke-bedrock.sh` to confirm the gateway is healthy and serving Bedrock models and that Open WebUI is up.
+
 8. **Modifying the flags and credentials**
 
    The `.env` file contains all of the flags, credentials, and other settings.

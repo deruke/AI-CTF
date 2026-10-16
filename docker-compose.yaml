@@ -54,8 +54,12 @@ services:
       - CTF_FLAG_CHALLENGE_8=${CTF_FLAG_CHALLENGE_8}  # Added this line
     restart: unless-stopped
     depends_on:
-      - ollama
-      - pipelines
+      ollama:
+        condition: service_started
+      pipelines:
+        condition: service_started
+      bedrock-gateway:
+        condition: service_healthy
   pipelines:
     image: ghcr.io/open-webui/pipelines:main
     container_name: pipelines
